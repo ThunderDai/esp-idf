@@ -138,8 +138,68 @@ static void run_fs_test(const char *name, const char* path, void *buf, size_t bu
     print_results(name, time, buf_size, repeat_count);
 }
 
+#include "esp_timer.h"
+
+void sdmmc_performe_test(const char *file_hello, bool is_write, bool is_dram)
+{
+    char *buffer = NULL;
+    uint32_t buffer_size = 64 * 1024 - 1;
+    uint32_t total_size = 1024 * 1024;
+    if (strncmp(file_hello, "/spiflash", 4) == 0) {
+        total_size = 128 * 1024;
+    }
+    if (is_dram) {
+        buffer = heap_caps_malloc(buffer_size, MALLOC_CAP_INTERNAL | MALLOC_CAP_CACHE_ALIGNED);
+    } else {
+        buffer = heap_caps_malloc(buffer_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_CACHE_ALIGNED);
+    }
+
+    FILE *f = fopen(file_hello, is_write ? "w+" : "r");
+    if (f == NULL) {
+        ESP_LOGE("TAG", "Failed to open file for writing");
+        if (buffer) {
+            free(buffer);
+        }
+        return;
+    }
+    memset(buffer, 'B', buffer_size);
+    int64_t start = esp_timer_get_time();
+    uint32_t bytes = 0;
+    if (is_write) {
+        while (bytes < total_size) {
+            ssize_t ret = write(fileno(f), buffer, buffer_size);
+            if (ret != -1) {
+                bytes += ret;
+            }
+        }
+    } else {
+        while (bytes < total_size) {
+            ssize_t ret = read(fileno(f), buffer, buffer_size);
+            if (ret != -1) {
+                bytes += ret;
+            }
+        }
+    }
+
+    int64_t duration = esp_timer_get_time() - start;
+    fclose(f);
+    if (buffer) {
+        free(buffer);
+    }
+    printf("File %s speed: %4.2f MB/s, buffer in %s\n", is_write ? "write" : "read",
+        bytes * 1000000.0 / (duration * 1024.0 * 1024), is_dram ? "dram" : "psram");
+}
+
 static void run_fs_tests(const char *base_path, const char *type, bool new_file, size_t repeat_count)
 {
+    for (int i = 0; i < 5; i++) {
+        sdmmc_performe_test("/sdcard/test.txt", true, true);
+    }
+
+    for (int i = 0; i < 5; i++) {
+        sdmmc_performe_test("/sdcard/test.txt", false, true);
+    }
+
     char path[256];
     snprintf(path, sizeof(path), "%s/test.bin", base_path);
 
