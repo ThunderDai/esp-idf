@@ -29,7 +29,7 @@ menu "Performance Benchmark Example Configuration"
 
     config EXAMPLE_TEST_SPIFLASH
         bool "Test internal SPI flash"
-        default y
+        default n
         help
             If this config item is set, the internal SPI flash will be tested.
 
@@ -101,7 +101,7 @@ menu "Performance Benchmark Example Configuration"
 
         config EXAMPLE_TEST_SD_CARD_RAW
             bool "Test raw access"
-            default y
+            default n
             help
                 If this config item is set, raw access will be tested.
 
@@ -124,7 +124,7 @@ menu "Performance Benchmark Example Configuration"
 
         config EXAMPLE_TEST_SD_CARD_LITTLEFS
             bool "Test LittleFS"
-            default y
+            default n
             help
                 If this config item is set, LittleFS will be tested.
 
